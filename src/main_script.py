@@ -30,6 +30,8 @@ def unique_question_id_lst(dic):
     for question, answers in dic.items():
         strp_question = question.replace(' ','_').lower()
         
+
+        
         answers_words = []
         
         for answer in answers:
@@ -156,19 +158,19 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
                     answers = driver.find_elements_by_xpath(f'(//div[@class="m2"])[{i}]/div[1]/div[2]/div/div/span/div/div/label')
 
                     if len(answers) == 0:
-                        answers = driver.find_elements_by_xpath(f'(//div[@class="m2"])[{i}]/div[1]/div[2]/div/div/label')
+                        answers = driver.find_elements_by_xpath(f'(//div[@class="m2"])[{i}]/div[1]/div[2]/div//label//span')
 
+                    question_txt = question.text.replace('"','^')
+                    question_txt = question_txt.replace("'",'’')
 
-                    question_txt = question.text
 
 
                 except Exception as e:
                     print('Unexpected error during gathering of data from the question divs, try to reload again... ')
                     print(e)
                     continue
-
                 
-                answers_txt = [answer.text for answer in answers if answer.text !='']
+                answers_txt = [answer.text.replace('"',"^") for answer in answers if answer.text !='']
 
                 QADict[question_txt] = answers_txt
 
@@ -286,7 +288,7 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
 
                 # wait for url_change
 
-                WebDriverWait(driver, 3600).until_not(EC.url_to_be(current_url))
+                WebDriverWait(driver, 36000).until_not(EC.url_to_be(current_url))
                 print('[!]Change of page detected')
 
 
