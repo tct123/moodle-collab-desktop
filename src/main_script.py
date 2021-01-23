@@ -160,7 +160,7 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
                     if len(answers) == 0:
                         answers = driver.find_elements_by_xpath(f'(//div[@class="m2"])[{i}]/div[1]/div[2]/div//label//span')
 
-                    question_txt = question.text.replace('"','^')
+                    question_txt = question.text.replace('"','’’')
                     question_txt = question_txt.replace("'",'’')
 
 
