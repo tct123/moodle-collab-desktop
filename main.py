@@ -21,7 +21,7 @@ string_var = tk.StringVar(value='Off')
 
 
 address = 'http://139.162.161.55'
-address = 'http://127.0.0.1:5000'
+# address = 'http://127.0.0.1:5000'
 
 
 with shelve.open('user_db') as db:
