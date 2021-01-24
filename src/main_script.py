@@ -152,7 +152,6 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
                 true_indexes.append(i)
 
 
-
                 try:
                     question = driver.find_element_by_xpath(f'(//div[@class="m2"])[{i}]/div[1]/div[1]/div[1]/div[1]')
                     answers = driver.find_elements_by_xpath(f'(//div[@class="m2"])[{i}]/div[1]/div[2]/div/div/span/div/div/label')
@@ -170,7 +169,7 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
                     print(e)
                     continue
                 
-                answers_txt = [answer.text.replace('"',"^") for answer in answers if answer.text !='']
+                answers_txt = [answer.text.replace('"',"’’") for answer in answers if answer.text !='']
 
                 QADict[question_txt] = answers_txt
 
@@ -203,7 +202,10 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
                     
                     question = driver.find_element_by_xpath(f'(//div[contains(@class,"formulation clearfix")])[{i}]/div[@class="qtext"]')
                     answers = driver.find_elements_by_xpath(f'(//div[contains(@class,"formulation clearfix")])[{i}]//label[contains(@for,"answer") and not(contains(text(),"Clear my choice"))]//p') 
-                    question_txt = question.text
+
+                    question_txt = question.text.replace('"','’’')
+                    question_txt = question_txt.replace("'",'’')
+
 
                 except Exception as e:
                     print('Unexpected error during gathering of data from the question divs, try to reload again... ')
@@ -220,7 +222,7 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
                 if len(answers) == 0:
                     answers = driver.find_elements_by_xpath(f'(//div[contains(@class,"formulation clearfix")])[{i}]//label[contains(@for,"choice")and not(contains(text(),"Clear my choice"))]/span[not(contains(@class,"answernumber"))]')
 
-                answers_txt = [answer.text for answer in answers if answer.text !='']
+                answers_txt = [answer.text.replace('"',"’’") for answer in answers if answer.text !='']
 
                 try: 
                     QADict[question_txt]
@@ -262,7 +264,6 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
                     'true_indexes': true_indexes,
                     'q_and_a_text': QADict
                 }
-
 
                 # SEND DATA TO COLLAB
                 
