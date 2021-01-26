@@ -33,8 +33,7 @@ with shelve.open('user_db') as db:
             db['chrome_driver_dir_path'] = os.path.abspath(file)
             chrome_label = tk.Label(text=f'{os.path.basename(file)} loaded!', master=chromedriver_frame)
             chrome_label.pack()
-
-            
+  
 
     try:
         chrome_driver_dir_path = db['chrome_driver_dir_path']
@@ -44,7 +43,7 @@ with shelve.open('user_db') as db:
     except KeyError:
         btn = tk.Button(
                 master=chromedriver_frame, 
-                text ='Select Chromedriver Path',
+                text = 'Select Chromedriver Path',
                 command = open_chromedriver,
                 width= 20,
                 fg='black')
@@ -64,14 +63,10 @@ with shelve.open('user_db') as db:
         username_label.pack()
         username.pack()
 
-
-
     google_form_value = tk.IntVar()
 
     c1 = tk.Checkbutton(master=settings_frame, text='Hosted on Google Forms?',variable=google_form_value, onvalue=1, offvalue=0)
-
     c1.pack(side=TOP, anchor=W)
-
 
 
     def start_session():
@@ -93,7 +88,7 @@ with shelve.open('user_db') as db:
         # USE REQUESTS TO RETRIEVE REGISTERED USERS
         r = requests.get(address + '/get_user_list')
         registered_users = r.json()['data']
-            
+
 
         # IF USER NOT IN REGISTERED USERS RESETS USERNAME AND CLOSES THE APPLICATION
         usr =  db['username']
@@ -101,6 +96,7 @@ with shelve.open('user_db') as db:
             print('Not a valid user')
             db['username'] = None
             sys.exit()
+
 
         else:
             start_script(
@@ -112,9 +108,6 @@ with shelve.open('user_db') as db:
                 window
             )
 
-
-
-        
 
     submit_info_btn = tk.Button(
                 master=submit_frame, 
