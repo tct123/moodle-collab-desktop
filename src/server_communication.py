@@ -13,3 +13,12 @@ def ready_to_go(username, address):
     address += '/user_ready'
     requests.post(address,json=user_dic)
 
+def loading_questions_alert(username, address, num_of_questions):
+    print('loading_questions_alert function started')
+
+    data = {
+        'username':username,
+        'num_of_questions': num_of_questions
+    }
+    address += '/loading_questions'
+    requests.post(address, json=data)

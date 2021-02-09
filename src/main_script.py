@@ -11,13 +11,14 @@ import shelve
 
 import os
 import sys
-from src.server_communication import send_questions_to_collab, ready_to_go
+from src.server_communication import send_questions_to_collab, ready_to_go, loading_questions_alert
 from pprint import pprint
 import subprocess
 
 from time import perf_counter
 
 import json
+import threading
 
 
 
@@ -205,6 +206,8 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
 
         if len(content_boxes) != 0:
 
+            threading.Thread(target=loading_questions_alert, args=(username, address, len(content_boxes))).start()
+
             QADict = {}
             
             for i in range(len(content_boxes)):
@@ -218,7 +221,10 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
 
                     
                     question = driver.find_element_by_xpath(f'(//div[@class="formulation clearfix"])[{i}]/div[@class="qtext"]')
-                    answers = driver.find_elements_by_xpath(f'(//div[@class="formulation clearfix"])[{i}]//label[contains(@for,"answer") or contains(@for,"choice") and not(contains(text(),"Clear my choice"))]//*[local-name()="p" or (local-name()="span" and not(contains(@class,"answernumber")))]') 
+                    # answers = driver.find_elements_by_xpath(f'(//div[@class="formulation clearfix"])[{i}]//label[contains(@for,"answer") or contains(@for,"choice") and not(contains(text(),"Clear my choice"))]//*[local-name()="p" or (local-name()="span" and not(contains(@class,"answernumber")))]')
+                    answer_block = f'(//div[@class="formulation clearfix"])[{i}]/div[@class="ablock"]'
+                    answers = driver.find_elements_by_xpath(f'{answer_block}//label[contains(@for,"answer")]//div[contains(@class,"flex-fill")]|{answer_block}//label[contains(@for,"choice")]//p[@dir="ltr"]')
+
 
                     question_txt = question.text.replace('"','’’').replace("'",'’')
 
