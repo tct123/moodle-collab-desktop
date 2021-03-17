@@ -20,7 +20,7 @@ submit_frame = tk.Frame()
 string_var = tk.StringVar(value='Off')
 
 
-address = 'http://139.162.161.55'
+address = 'http://139.162.166.116'
 # address = 'http://127.0.0.1:5000'
 
 
