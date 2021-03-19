@@ -24,40 +24,26 @@ import threading
 
 
 
-
-
-def unique_question_id_lst(dic):
+def get_unique_question_id(question, related_answers):
     '''
-    returns a list containing all uniques question_id for the scraped page
-
+    DOCSTRING:
+    returns an unique question_id
     '''
-    question_id_lst = []
+    strp_question = question.replace(' ','_').lower()
+    answers_words = []
+    for answer in related_answers:
+        answers_words += answer.split()
+    answers_words.sort(reverse=True)
+    answers_words = [answer_word.lower() for answer_word in answers_words if answer_word.isalnum()] # POTENZIALE PUNTO DI ERRORE!
+    try:
+        last_answr_words = answers_words[:3]    
+    except:
+        last_answr_words= answers_words[:2]
 
-    for question, answers in dic.items():
-        strp_question = question.replace(' ','_').lower()
-        
+    id_answer_words = '_'.join(last_answr_words)
+    question_id = strp_question + '_' + id_answer_words
 
-        
-        answers_words = []
-        
-        for answer in answers:
-            answers_words += answer.split()
-        
-        answers_words.sort(reverse=True)
-        answers_words = [answer_word.lower() for answer_word in answers_words if answer_word.isalnum()] # POTENZIALE PUNTO DI ERRORE!
-        try:
-            last_answr_words = answers_words[:3]    
-        except:
-            last_answr_words= answers_words[:2]    
-            
-        id_answer_words = '_'.join(last_answr_words)
-
-        question_id = strp_question + '_' + id_answer_words
-        question_id_lst.append(question_id)
-
-    return question_id_lst
-        
-
+    return question_id
 
 
 
@@ -78,63 +64,34 @@ def save_to_textfile(i, question, answers, path=''):
         quit()
     
 
-def dic_to_lst(dic):
-    '''
-    REQUIRED TO LOAD QUESTIONS IN A LIST TO PASS TO s.updateColumn FUNCTION
-    '''
-    result = []
-    for question, answers in dic.items():
-        answers.insert(0, question)
-        answers.append('')
-        result.extend(answers)
-    return result
 
 
+def retrieve_chromedriver(chrome_driver_dir_path):
+    chromedrivers = os.listdir(chrome_driver_dir_path)
+    chromedrivers.reverse() # to start from the latest available chromedriver and avoid hitting hidden files
 
-def retrieve_chromedriver_v2(chrome_driver_dir_path):
-    if OS_system() == 'Windows':
+    for chromedriver in chromedrivers:
+        print(chromedriver)
         try:
-            driver_path = os.path.join(chrome_driver_dir_path, 'chromedriver_86_windows.exe' )
+            driver_path = os.path.join(chrome_driver_dir_path, chromedriver)
+            print(driver_path)
             driver = webdriver.Chrome(driver_path)
-
+            break
         except:
             print('[WARNING] Error while trying to set up chromedriver, trying with another version')
-            driver_path = os.path.join(chrome_driver_dir_path, 'chromedriver_87_windows.exe' )
-            driver = webdriver.Chrome(driver_path)
 
-    else:
-        try:
-            driver_path = os.path.join(chrome_driver_dir_path, 'chromedriver_86_mac')
-            driver = webdriver.Chrome(driver_path)
-
-        except:
-            print('[WARNING] Error while trying to set up chromedriver, trying with another version')
-            driver_path = os.path.join(chrome_driver_dir_path, 'chromedriver_87_mac')
-            driver = webdriver.Chrome(driver_path)
-    
     print('[SUCCESS] Chromedriver set up successfully')
+        
+        
+
     return driver
 
 
-
-def save_cookie(driver, path):
-    with open(path, 'w') as filehandler:
-        json.dump(driver.get_cookies(), filehandler)
-
-def load_cookie(driver, path):
-    with open(path, 'r') as cookiesfile:
-        cookies = json.load(cookiesfile)
-    for cookie in cookies:
-        driver.add_cookie(cookie)
-
-    
-    
 
 
 def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_path, address, window):
 
     window.destroy()
-
 
 
     # SELENIUM STUFF:
@@ -146,28 +103,24 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
         moodle_page = 'https://www.infomedct.ro'
         
 
-    driver = retrieve_chromedriver_v2(chrome_driver_dir_path)
+    driver = retrieve_chromedriver(chrome_driver_dir_path)
     print('Selenium graphical mode Initialized')
     driver.get(moodle_page)
 
 
 
 
-
     def gather_questions_g_forms():
         
-        true_indexes = []
+        question_data = []
         content_boxes = driver.find_elements_by_xpath('//div[@class="m2"]')
         print(f'Num of questions found: {len(content_boxes)}')
 
         if len(content_boxes) != 0:
 
-            QADict = {}
 
             for i in range(len(content_boxes)):
                 i += 1
-                true_indexes.append(i)
-
 
                 try:
                     question = driver.find_element_by_xpath(f'(//div[@class="m2"])[{i}]/div[1]/div[1]/div[1]/div[1]')
@@ -176,30 +129,36 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
                     if len(answers) == 0:
                         answers = driver.find_elements_by_xpath(f'(//div[@class="m2"])[{i}]/div[1]/div[2]/div//label//span')
 
-                    question_txt = question.text.replace('\'','’').replace('"','’’')
-
-
-
                 except Exception as e:
                     print('Unexpected error during gathering of data from the question divs, try to reload again... ')
                     print(e)
                     continue
-                
+
+                question_txt = question.text.replace('"','’’').replace("'",'’')
                 answers_txt = [answer.text.replace('"',"’’") for answer in answers if answer.text !='']
+                question_id = get_unique_question_id(question_txt, answers_txt)
 
-                QADict[question_txt] = answers_txt
-
-
-            return QADict, true_indexes
-
-
+                question_information = {
+                    'index': i,
+                    'question_id': question_id,
+                    'question_text': question_txt,
+                    'answers_lst': answers_txt
+                }
+                question_data.append(question_information)
+            return question_data
         else:
             return None
-        
+
 
     def gather_questions_moodle():
 
-        true_indexes = []
+        '''
+        DOCSTRING:
+        Returns a list of the questions found or None if no questions have been detected in the page
+
+        '''
+
+        question_data = []
         content_boxes = driver.find_elements_by_xpath('//div[contains(@class,"formulation clearfix")]')
 
         print(f'Num of questions found: {len(content_boxes)}')
@@ -208,151 +167,51 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
 
             threading.Thread(target=loading_questions_alert, args=(username, address, len(content_boxes))).start()
 
-            QADict = {}
-            
             for i in range(len(content_boxes)):
                 
                 i += 1
                 
                 try:
                     true_index = driver.find_element_by_xpath(f'(//span[contains(@class,"qno")])[{i}]').text
-
-                    true_indexes.append(true_index)
-
-                    
                     question = driver.find_element_by_xpath(f'(//div[@class="formulation clearfix"])[{i}]/div[@class="qtext"]')
-                    # answers = driver.find_elements_by_xpath(f'(//div[@class="formulation clearfix"])[{i}]//label[contains(@for,"answer") or contains(@for,"choice") and not(contains(text(),"Clear my choice"))]//*[local-name()="p" or (local-name()="span" and not(contains(@class,"answernumber")))]')
                     answer_block = f'(//div[@class="formulation clearfix"])[{i}]/div[@class="ablock"]'
                     answers = driver.find_elements_by_xpath(f'{answer_block}//label[contains(@for,"answer")]//div[contains(@class,"flex-fill")]|{answer_block}//label[contains(@for,"choice")]//p[@dir="ltr"]')
-
-
-                    question_txt = question.text.replace('"','’’').replace("'",'’')
-
 
                 except Exception as e:
                     print('Unexpected error during gathering of data from the question divs, try to reload again... ')
                     print(e)
                     continue
 
-                # if len(answers) == 0:
-                #     answers = driver.find_elements_by_xpath(f'(//div[@class="formulation clearfix"])[{i}]//label[contains(@for,"answer")and not(contains(text(),"Clear my choice"))]/span[not(contains(@class,"answernumber"))]')
-
-                # if len(answers) == 0:
-                #     # MULTIPLE SOLUTION QUESTIONS
-                #     answers = driver.find_elements_by_xpath(f'(//div[@class="formulation clearfix"])[{i}]//label[contains(@for,"choice")and not(contains(text(),"Clear my choice"))]//p') 
-                #     question_txt = question_txt + ' [MULTIPLE SOLUTION]'
-                # if len(answers) == 0:
-                #     answers = driver.find_elements_by_xpath(f'(//div[@class="formulation clearfix"])[{i}]//label[contains(@for,"choice")and not(contains(text(),"Clear my choice"))]/span[not(contains(@class,"answernumber"))]')
-
+                question_txt = question.text.replace('"','’’').replace("'",'’')
                 answers_txt = [answer.text.replace('"',"’’") for answer in answers if answer.text !='']
-
-                try: 
-                    QADict[question_txt]
-                    question_txt += f' ({true_index})'
-                except KeyError:
-                    pass
-                    
-                QADict[question_txt] = answers_txt
+                question_id = get_unique_question_id(question_txt, answers_txt)
 
 
-            return QADict, true_indexes
-
+                question_information = {
+                    'index': true_index,
+                    'question_id': question_id,
+                    'question_text': question_txt,
+                    'answers_lst': answers_txt
+                }
+                question_data.append(question_information)
+            return question_data
         else:
             return None
 
 
 
-    # def gather_questions_moodle():
-    #     driver.implicitly_wait(2)
-
-    #     innerHTML = driver.execute_script("return document.body.innerHTML")
-
-
-    #     tree = html.fromstring(innerHTML)
-
-
-    #     true_indexes = []
-    #     content_boxes = tree.xpath('//div[contains(@class,"formulation clearfix")]')
-    #     print(f'Num of questions found: {len(content_boxes)}')
-
-    #     if len(content_boxes) != 0:
-
-    #         QADict = {}
-            
-    #         for i in range(len(content_boxes)):
-                
-    #             i += 1
-                
-    #             try:
-    #                 true_index = tree.xpath(f'(//span[contains(@class,"qno")])[{i}]')[0].text
-
-    #                 print(true_index)
-    #                 true_indexes.append(true_index)
-
-                    
-    #                 question = tree.xpath(f'(//div[@class="formulation clearfix"]/div[@class="qtext"])')[i-1]
-    #                 print(question)
-    #                 print(question.text)
-
-    #                 answers = tree.xpath(f'(//div[@class="formulation clearfix"])[{i}]//label[contains(@for,"answer") and not(contains(text(),"Clear my choice"))]//p') 
-
-    #                 question_txt = question.text.replace('"','’’').replace("'",'’')
-    #                 print(question_txt)
-
-
-    #             except Exception as e:
-
-    #                 print(e)
-    #                 break
-
-    #             if len(answers) == 0:
-    #                 answers = tree.xpath(f'//div[@class="formulation clearfix"][{i}]//label[contains(@for,"answer")and not(contains(text(),"Clear my choice"))]/span[not(contains(@class,"answernumber"))]')
-
-    #             if len(answers) == 0:
-    #                 # MULTIPLE SOLUTION QUESTIONS
-    #                 answers = tree.xpath(f'//div[@class="formulation clearfix"][{i}]//label[contains(@for,"choice")and not(contains(text(),"Clear my choice"))]//p') 
-
-    #                 question_txt = question_txt + ' [MULTIPLE SOLUTION]'
-    #             if len(answers) == 0:
-    #                 answers = tree.xpath(f'//div[@class="formulation clearfix"][{i}]//label[contains(@for,"choice")and not(contains(text(),"Clear my choice"))]/span[not(contains(@class,"answernumber"))]')
-
-
-    #             answers_txt = [answer.text.replace('"',"’’") for answer in answers if answer.text !='']
-
-    #             try: 
-    #                 QADict[question_txt]
-    #                 question_txt += f' ({true_index})'
-    #             except KeyError:
-    #                 pass
-                    
-    #             QADict[question_txt] = answers_txt
-
-
-    #         return QADict, true_indexes
-
-    #     else:
-    #         return None
-
-  
-    
-
     def process_data(gather_questions_funct):
 
         ready_to_go(username, address)
-
-
-        
-
         while True:
 
             current_url = driver.current_url
-
             try:
                 t_start = perf_counter()
                 try:
                     driver.implicitly_wait(2)
                     if driver.current_url == current_url:
-                        QADict, true_indexes = gather_questions_funct()
+                        question_data = gather_questions_funct()
                     else:
                         continue
 
@@ -361,31 +220,31 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
                     print('2nd Try...')
                     driver.implicitly_wait(2)
                     if driver.current_url == current_url:
-                        QADict, true_indexes = gather_questions_funct()
+                        question_data = gather_questions_funct()
                     else:
                         continue
 
                 t_end = perf_counter()
                 print(f'elapsed time: {t_end - t_start}')
 
-                question_id_lst = unique_question_id_lst(QADict)
+                if len(question_data) == 0:
+                    continue
 
-                result_dic = {
-                    'username': username,
-                    'question_id_lst': question_id_lst,
-                    'true_indexes': true_indexes,
-                    'q_and_a_text': QADict
+
+                result = {
+                    'user_id': username,
+                    'question_data': question_data
                 }
 
                 # SEND DATA TO COLLAB
                 
                 try:
-                    send_questions_to_collab(result_dic, address)
+                    send_questions_to_collab(result, address)
                     print('Data correctly sent to Moodle Collab')
 
                 except Exception:
                     try:
-                        send_questions_to_collab(result_dic, address)
+                        send_questions_to_collab(result, address)
                         print('Data correctly sent to Moodle Collab')
 
                     except Exception:
@@ -395,18 +254,14 @@ def start_script(username, MOODLECOLLABPLATFORM, GOOGLEFORM, chrome_driver_dir_p
             except:
                 pass
 
-
             finally:
 
                 # wait for url_change
-
                 WebDriverWait(driver, 36000).until_not(EC.url_to_be(current_url))
                 print('[!]Change of page detected')
 
 
     gather_questions_funct = gather_questions_moodle if GOOGLEFORM != 1 else gather_questions_g_forms
-
-
     process_data(gather_questions_funct)
 
 

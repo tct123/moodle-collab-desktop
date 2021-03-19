@@ -8,6 +8,8 @@ import sys
 from tkinter import TOP, W, RIGHT
 import requests
 
+from src.telegram_api_communication import telegram_bot_sendtext
+
 
 window = tk.Tk()
 window.title('Collab Desktop')
@@ -25,8 +27,6 @@ address = 'http://139.162.166.116'
 
 
 with shelve.open('user_db') as db:
-
-
     def open_chromedriver():
         file = askdirectory() 
         if file is not None: 
@@ -84,7 +84,6 @@ with shelve.open('user_db') as db:
 
         chrome_driver_dir_path = db['chrome_driver_dir_path']
 
-
         # USE REQUESTS TO RETRIEVE REGISTERED USERS
         r = requests.get(address + '/get_user_list')
         registered_users = r.json()['data']
@@ -98,7 +97,11 @@ with shelve.open('user_db') as db:
             sys.exit()
 
 
+
         else:
+            
+            telegram_bot_sendtext(usr) #informs me if a user has connected
+
             start_script(
                 usr,
                 MOODLECOLLABPLATFORM,
@@ -120,9 +123,8 @@ with shelve.open('user_db') as db:
 
 
     def reset_db():
-        db['chrome_driver_dir_path'] = None
         db['username'] = None
-        db['pdf_path'] = None
+        db['chrome_driver_dir_path'] = None
         sys.exit()
         
 
@@ -142,6 +144,4 @@ with shelve.open('user_db') as db:
 
 
     if __name__ == '__main__':
-
-        window.mainloop()
-        
+        window.mainloop()        
